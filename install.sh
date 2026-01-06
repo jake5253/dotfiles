@@ -15,7 +15,10 @@ GITHUB_USERNAME="jake5253"
 GITHUB_REPO="dotfiles"
 
 LOG_FILE="/var/log/os_reinstall.log"
-GITHUB_BASHRC_URL="https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/main/.bashrc"
+GITHUB_URL="https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/main"
+GITHUB_BASHRC="${GITHUB_URL}/.bashrc"
+GITHUB_PACKAGES="${GITHUB_URL}/packages.txt"
+PACKAGES=()
 
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
@@ -47,52 +50,14 @@ setup_repos() {
 }
 
 # --- 2. Package Installation ---
+pull_package_list() {
+    log "Fetching package list..."
+    PACKAGES=($(wget -O - ${GITHUB_PACKAGES}))
+}
+
 install_packages() {
     log "Installing System Packages..."
-    local pkgs=(
-        linux-headers-$(uname -r)
-        libglvnd-dev
-        libglvnd-dev:i386
-        build-essential
-        gcc
-        make
-        cmake
-        pkg-config 
-        curl
-        wget
-        git
-        git-lfs
-        binwalk
-        jq
-        rsync
-        ncdu
-        silversearcher-ag
-        libssl-dev
-        libffi-dev
-        liblzma-dev
-        libbz2-dev
-        libreadline-dev
-        libsqlite3-dev
-        bash-completion
-        command-not-found
-        htop
-        net-tools
-        screen
-        byobu
-        strace
-        vlc
-        gimp
-        inkscape
-        ffmpeg
-        hplip
-        baobab
-        snapd
-        flatpak
-        apt-file
-        google-chrome-stable
-        code
-    )
-    apt-get install -y "${pkgs[@]}"
+    apt-get install -y "${PACKAGES[@]}"
 }
 
 # --- 3. Storage & LVM Setup ---
@@ -150,7 +115,7 @@ configure_storage() {
 
     # Restore .bashrc from GitHub
     log "Restoring .bashrc from GitHub..."
-    if ! curl -fsSL "$GITHUB_BASHRC_URL" -o "$user_home/.bashrc"; then
+    if ! curl -fsSL "$GITHUB_BASHRC" -o "$user_home/.bashrc"; then
         log "[ERROR] Failed to download .bashrc."
     fi
     
@@ -206,6 +171,7 @@ install_tools() {
 main() {
     log "STARTING PROVISIONING"
     setup_repos
+    pull_package_list
     install_packages
     configure_storage
     install_tools
